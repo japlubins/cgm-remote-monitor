@@ -3,7 +3,9 @@
 Proyecto para convertir una Raspberry Pi en un streamer de audio de calidad HiFi,
 conectado a tu equipo (amplificador/DAC externo) usando exclusivamente software libre.
 
-El resultado final es una Pi "headless" (sin pantalla) que aparece en tu red como:
+El resultado final es un aparato autónomo con **pantalla OLED y encoder
+rotatorio** para navegar por playlists y radios sin necesidad de móvil
+(ver sección 6), que además aparece en tu red como:
 
 - **Salida AirPlay** (desde iPhone/iPad/Mac) — vía `shairport-sync`
 - **Spotify Connect** (desde la app oficial de Spotify) — vía `raspotify` (librespot)
@@ -162,7 +164,80 @@ por `fstab`) y ejecuta `mpc update`.
 
 ---
 
-## 6. Extras opcionales
+## 6. Modo standalone: pantalla y controles físicos
+
+Para usar el streamer como un aparato autónomo — sin necesidad de móvil ni
+navegador — el proyecto incluye una interfaz física: una pantalla OLED que
+muestra lo que suena y un encoder rotatorio para navegar por menús
+(playlists, radios, cola y sistema).
+
+### 6.1 Hardware necesario
+
+| Pieza | Modelo recomendado | Precio aprox. |
+|---|---|---|
+| Pantalla | OLED 0,96" o 1,3" **SSD1306/SH1106, I2C** (128×64) | 3–6 € |
+| Control | **Encoder rotatorio KY-040** (girar + pulsar) | 1–2 € |
+| Botón | Pulsador momentáneo (botón "atrás") | <1 € |
+
+### 6.2 Cableado (pines BCM)
+
+```
+OLED (I2C)                Encoder KY-040            Botón atrás
+────────────              ──────────────            ───────────
+VCC → 3V3 (pin 1)         CLK → GPIO17 (pin 11)     una pata → GPIO23 (pin 16)
+GND → GND  (pin 6)        DT  → GPIO27 (pin 13)     otra pata → GND (pin 14)
+SDA → GPIO2 (pin 3)       SW  → GPIO22 (pin 15)
+SCL → GPIO3 (pin 5)       +   → 3V3, GND → GND
+```
+
+> Los pines son configurables al principio de `ui/streamer_ui.py`.
+> Ojo si usas un DAC HAT: consulta qué GPIO deja libres tu placa
+> (los HAT de HiFiBerry/IQaudIO usan I2S — GPIO 18/19/20/21 — y dejan
+> libres los de arriba; el bus I2C es compartible sin problema).
+
+### 6.3 Instalación
+
+```bash
+sudo ./install-ui.sh
+```
+
+Instala las dependencias Python en un entorno virtual (`/opt/streamer-ui`),
+activa el bus I2C y deja corriendo el servicio `streamer-ui` que arranca
+solo al encender la Pi.
+
+### 6.4 Manejo
+
+| Gesto | En "Reproduciendo" | En listas/menús |
+|---|---|---|
+| Girar encoder | Pista siguiente/anterior | Mover la selección |
+| Pulsar encoder | Play / pausa | Seleccionar |
+| Botón atrás | Abrir el menú | Volver |
+
+El menú da acceso a **Playlists** (las guardadas en MPD), **Radios**
+(emisoras definidas en `/etc/streamer-ui/radios.conf`), la **Cola** actual
+y **Sistema** (ver la IP, reiniciar, apagar de forma segura).
+
+La pantalla muestra lo que se reproduce a través de MPD (biblioteca,
+playlists, radios y UPnP vía upmpdcli). AirPlay y Spotify Connect suenan
+igual, pero van directos a ALSA y no aparecen en pantalla.
+
+### 6.5 Alternativa: pantalla táctil
+
+Si prefieres una interfaz gráfica completa, usa la **pantalla táctil oficial
+de 7"** (u otra HDMI/DSI con touch):
+
+- Con **moOde Audio** basta activar su "local display" en la configuración:
+  muestra la propia interfaz web en la pantalla, con carátulas y todo.
+- En el montaje propio de este repo: instala [myMPD](https://jcorporation.github.io/myMPD/)
+  y lanza Chromium en modo kiosco apuntando a `http://localhost` — buena
+  opción si tu prioridad es navegar la biblioteca con carátulas.
+
+La OLED + encoder gasta menos, arranca al instante y da un aspecto más de
+"aparato HiFi"; la táctil es más cómoda para bibliotecas grandes.
+
+---
+
+## 7. Extras opcionales
 
 - **Multiroom**: [Snapcast](https://github.com/badaix/snapcast) sincroniza varias
   Pis en distintas habitaciones.
@@ -176,12 +251,18 @@ por `fstab`) y ejecuta `mpc update`.
 ```
 hifi-audio-streamer/
 ├── README.md                  # esta guía
-├── install.sh                 # instalador para Raspberry Pi OS Lite
-└── config/
-    ├── mpd.conf               # MPD con salida ALSA directa (bit-perfect)
-    ├── shairport-sync.conf    # receptor AirPlay
-    ├── upmpdcli.conf          # renderizador UPnP → MPD
-    └── asound.conf.example    # ALSA por defecto apuntando al DAC
+├── install.sh                 # instalador del stack de audio (Raspberry Pi OS Lite)
+├── install-ui.sh              # instalador de la interfaz física (pantalla + encoder)
+├── config/
+│   ├── mpd.conf               # MPD con salida ALSA directa (bit-perfect)
+│   ├── shairport-sync.conf    # receptor AirPlay
+│   ├── upmpdcli.conf          # renderizador UPnP → MPD
+│   └── asound.conf.example    # ALSA por defecto apuntando al DAC
+└── ui/
+    ├── streamer_ui.py         # app de la pantalla OLED + encoder
+    ├── radios.conf            # emisoras del menú "Radios"
+    ├── requirements.txt       # dependencias Python
+    └── streamer-ui.service    # servicio systemd
 ```
 
 Licencia: los scripts y configuraciones de esta carpeta se publican bajo GPLv3,
