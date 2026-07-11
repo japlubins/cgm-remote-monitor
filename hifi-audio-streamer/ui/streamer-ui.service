@@ -1,0 +1,14 @@
+[Unit]
+Description=Interfaz fisica del streamer HiFi (OLED + encoder)
+After=mpd.service
+Wants=mpd.service
+
+[Service]
+ExecStart=/opt/streamer-ui/venv/bin/python /opt/streamer-ui/streamer_ui.py
+Restart=on-failure
+RestartSec=3
+# systemctl reboot/poweroff desde el menú "Sistema" requiere root
+User=root
+
+[Install]
+WantedBy=multi-user.target

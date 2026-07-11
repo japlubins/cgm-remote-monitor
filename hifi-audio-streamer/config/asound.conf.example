@@ -1,0 +1,15 @@
+# ALSA — tarjeta por defecto del sistema apuntando al DAC.
+# Así, cualquier programa que use la salida por defecto (speaker-test, aplay...)
+# también suena por el DAC. Los servicios principales (MPD, shairport, raspotify)
+# ya apuntan directamente al dispositivo hw:, esto es solo para el resto.
+# Los marcadores @...@ los sustituye install.sh
+
+pcm.!default {
+    type plug
+    slave.pcm "@ALSA_DEVICE@"
+}
+
+ctl.!default {
+    type hw
+    card "@CARD_NAME@"
+}
